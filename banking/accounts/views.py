@@ -70,11 +70,10 @@ class DepositAPIView(generics.GenericAPIView):
 class WithdrawalAPIView(generics.GenericAPIView):
     serializer_class = WithdrawalSerializer
     permission_classes = [permissions.IsAuthenticated]
-
     def post(self, request):
         account_number = request.data.get('account_number')
         amount = request.data.get('amount')
-        description = request.data.get('description', '')  # Get the description from the request data
+        description = request.data.get('description', '')
 
         if not account_number or not amount:
             return Response({'error': 'Both account_number and amount are required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -86,16 +85,26 @@ class WithdrawalAPIView(generics.GenericAPIView):
             amount = serializer.validated_data.get('amount')
             if amount > savings_account.balance:
                 return Response({'error': 'Insufficient funds'}, status=status.HTTP_400_BAD_REQUEST)
+
+            category_name = description  
+            budget_control = BudgetControl.objects.filter(account_number=account_number, category_name=category_name).first()
+            if budget_control:
+                if amount > budget_control.balance_budget:
+                    subject = "Budget Alert: High Expenses"
+                    message = f"Dear user,\n\nYou made a withdrawal of ${amount} from account number {account_number} for the category '{category_name}', which exceeds the balance budget.\n\nCategory: {category_name}\nWithdrawal Amount: ${amount}\nAccount Number: {account_number}\nTransaction Date: {timezone.now()}\n\nPlease review your budget and adjust accordingly.\n\nBest regards,\nYour Budget App Team"
+                    from_email = "your_budget_app@example.com"  
+                    to_email = [request.user.email]  
+                    send_mail(subject, message, from_email, to_email)
+
+                budget_control.balance_budget -= amount
+                budget_control.save()
+
             try:
-                # Withdraw the amount
-                savings_account.withdraw(amount, description)  # Pass the description to the withdraw method
-                # Get the updated balance after withdrawal
+                savings_account.withdraw(amount, description)
                 new_balance = savings_account.balance
                 return Response({'message': 'Withdrawal successful', 'new_balance': new_balance}, status=status.HTTP_200_OK)
             except ValueError as e:
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class TransactionHistoryAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -427,23 +436,18 @@ class FundTransferListAPIView(generics.ListAPIView):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+    
 class BudgetListCreateAPIView(APIView):
     def get(self, request):
         budgets = BudgetControl.objects.all()
         serializer = BudgetSerializer(budgets, many=True)
         return Response(serializer.data)
-
+    
     def post(self, request):
         serializer = BudgetSerializer(data=request.data)
         if serializer.is_valid():
             instance = serializer.save()
-            if instance.alloted_budget > instance.balance_budget:
-                # Send email notification
-                subject = "Budget Alert: Allotted Budget Exceeds Balance Budget"
-                message = f"Dear user,\n\nYour allotted budget for category {instance.category_name} exceeds the balance budget.\n\nCategory: {instance.category_name}\nAllotted Budget: {instance.alloted_budget}\nBalance Budget: {instance.balance_budget}\nStart Date: {instance.start_date}\nEnd Date: {instance.end_date}\n\nPlease review your budget and adjust accordingly.\n\nBest regards,\nYour Budget App Team"
-                from_email = "your_budget_app@example.com"  # Replace with your sender email
-                to_email = [self.request.user.email]  # Assuming user is authenticated and has an email field
-                send_mail(subject, message, from_email, to_email)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    

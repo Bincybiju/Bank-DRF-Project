@@ -24,25 +24,7 @@ class WithdrawalSerializer(serializers.Serializer):
         if value <= 0:
             raise serializers.ValidationError("Amount must be greater than zero.")
         return value
-    def validate(self, data):
-        amount = data.get('amount')
-        category_name = data.get('category_name')
-        account_number = self.context['request'].data.get('account_number')
-        savings_account = Savings.objects.get(account_number=account_number)
-
-        if amount > savings_account.balance:
-            raise serializers.ValidationError("Insufficient funds.")
-
-        if amount > savings_account.balance_budget:
-            # Send email notification
-            subject = "Budget Alert: High Expenses"
-            message = f"Dear user,\n\nYou made a withdrawal of ${amount} from account number {account_number} for the category '{category_name}', which exceeds the balance budget.\n\nCategory: {category_name}\nWithdrawal Amount: ${amount}\nAccount Number: {account_number}\nTransaction Date: {timezone.now()}\n\nPlease review your budget and adjust accordingly.\n\nBest regards,\nYour Budget App Team"
-            from_email = "your_budget_app@example.com"  # Replace with your sender email
-            to_email = [self.context['request'].user.email]  # Assuming user is authenticated and has an email field
-            send_mail(subject, message, from_email, to_email)
-
-        return data
-
+    
 
 class SavingsTransactionSerializer(serializers.ModelSerializer):
     account_id = serializers.PrimaryKeyRelatedField(source='account', read_only=True)
