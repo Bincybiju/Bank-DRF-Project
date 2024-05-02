@@ -24,7 +24,6 @@ class RegisterAPIView(APIView):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            # Check if the user type is staff, then set is_staff to True
             if 'user_type' in serializer.validated_data and serializer.validated_data['user_type'] == 'staff':
                 user.is_staff = True
                 user.save()
@@ -74,3 +73,23 @@ class ProfileUpdateAPIView(APIView):
             serializer.save()
             return Response({"message": "Profile updated successfully"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+from rest_framework_simplejwt.tokens import RefreshToken
+   
+class LogoutAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data["refresh_token"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"message": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+class LogoutAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        return Response({"message": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT)
+        

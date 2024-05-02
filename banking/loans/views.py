@@ -91,7 +91,7 @@ class LoanApplicationCreateAPIView(generics.CreateAPIView):
 
 class LoanApplicationListAPIView(generics.ListAPIView):
     serializer_class = LoanApplicationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsCustomerUser]
 
     def get_queryset(self):
         # Retrieve the authenticated user
@@ -133,5 +133,5 @@ class UserLoanApplicationListView(generics.ListAPIView):
     permission_classes = [IsAdminOrStaffUser]
 
     def get_queryset(self):
-        user = self.request.user
-        return LoanApplication.objects.filter(user=user)
+        # user = self.request.user
+        return LoanApplication.objects.all()

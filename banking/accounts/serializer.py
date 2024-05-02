@@ -101,3 +101,11 @@ class BudgetSerializer(serializers.ModelSerializer):
     class Meta:
         model = BudgetControl
         fields = ['id', 'category_name', 'account_number', 'alloted_budget', 'balance_budget', 'start_date', 'end_date']
+    def validate(self, data):
+        alloted_budget = data.get('alloted_budget')
+        balance_budget = data.get('balance_budget')
+
+        if alloted_budget < balance_budget:
+            raise serializers.ValidationError("Alloted budget must be greater than balance budget.")
+
+        return data

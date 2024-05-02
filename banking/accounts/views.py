@@ -42,7 +42,7 @@ class DeleteAccountAPIView(APIView):
    
 class DepositAPIView(generics.GenericAPIView):
     serializer_class = DepositSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCustomerUser]
 
     def post(self, request):
         account_number = request.data.get('account_number')
@@ -69,7 +69,7 @@ class DepositAPIView(generics.GenericAPIView):
     
 class WithdrawalAPIView(generics.GenericAPIView):
     serializer_class = WithdrawalSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCustomerUser]
     def post(self, request):
         account_number = request.data.get('account_number')
         amount = request.data.get('amount')
@@ -107,7 +107,7 @@ class WithdrawalAPIView(generics.GenericAPIView):
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class TransactionHistoryAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCustomerUser]
 
     def post(self, request):
         account_number = request.data.get('account_number')
@@ -202,7 +202,7 @@ class InterestRateAPIView(APIView):
 class FixedDepositCreateAPIView(generics.CreateAPIView):
     queryset = FixedDeposit.objects.all()
     serializer_class = FixedDepositSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCustomerUser]
 
     def calculate_total_amount(self, amount, interest_rate, duration_months):
         # Convert duration from months to days
@@ -243,7 +243,7 @@ class FixedDepositCreateAPIView(generics.CreateAPIView):
 class FixedDepositListAPIView(generics.ListAPIView):
     queryset = FixedDeposit.objects.all()
     serializer_class = FixedDepositSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCustomerUser]
 
     def get_queryset(self):
         # Filter the queryset to include only fixed deposits of the current user
@@ -278,7 +278,7 @@ from decimal import Decimal
 class RecurrentDepositCreateAPIView(generics.CreateAPIView):
     queryset = RecurrentDeposit.objects.all()
     serializer_class = RecurrentDepositSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCustomerUser]
 
     def calculate_total_amount(self, amount, interest_rate, duration_days):
         total_amount = amount * (1 + Decimal(interest_rate.rate) / 100) ** (duration_days / Decimal(365))
@@ -328,7 +328,7 @@ class RecurrentDepositCreateAPIView(generics.CreateAPIView):
 class RecurrentDepositListAPIView(generics.ListAPIView):
     queryset = FixedDeposit.objects.all()
     serializer_class = RecurrentDepositSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsCustomerUser]
 
 
     def get_queryset(self):
@@ -438,6 +438,8 @@ class FundTransferListAPIView(generics.ListAPIView):
         return Response(serializer.data)
     
 class BudgetListCreateAPIView(APIView):
+    permission_classes = [IsCustomerUser]
+
     def get(self, request):
         budgets = BudgetControl.objects.all()
         serializer = BudgetSerializer(budgets, many=True)
