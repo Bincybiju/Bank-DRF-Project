@@ -3,7 +3,6 @@ from .views import *
 
 urlpatterns = [
     path('savings/', CreateAccountAPIView.as_view(), name='account-list'),
-
     path('deposit/', DepositAPIView.as_view(), name='deposit'),
     path('withdraw/', WithdrawalAPIView.as_view(), name='withdraw'),
     path('transaction/', TransactionHistoryAPIView.as_view(), name='transaction_history'),

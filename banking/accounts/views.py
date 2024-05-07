@@ -115,7 +115,6 @@ class TransactionHistoryAPIView(APIView):
         if not account_number:
             return Response({'error': 'Account number is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Ensure that the requested account belongs to the current user
         account = get_object_or_404(Savings, account_number=account_number, user=request.user)
         savings_transactions = SavingsTransaction.objects.filter(account=account)
         current_transactions = CurrentTransaction.objects.filter(account=account)
@@ -369,38 +368,31 @@ class FundTransferAPIView(APIView):
             receiver_account_number = serializer.validated_data['receiver_account_number']
             amount = serializer.validated_data['amount']
             
-            # Get the logged-in user's savings accounts
             sender_accounts = request.user.savings_set.all()
             if not sender_accounts.exists():
                 return Response({"error": "Sender account not found"}, status=status.HTTP_404_NOT_FOUND)
-            
-            # Retrieve sender account by the account number provided in the request
+
             sender_account_number = serializer.validated_data['sender_account_number']
             try:
                 sender_account = sender_accounts.get(account_number=sender_account_number)
             except Savings.DoesNotExist:
                 return Response({"error": "Sender account not found"}, status=status.HTTP_404_NOT_FOUND)
             
-            # Retrieve receiver account
             try:
                 receiver_account = Savings.objects.get(account_number=receiver_account_number)
             except Savings.DoesNotExist:
                 return Response({"error": "Receiver account not found"}, status=status.HTTP_404_NOT_FOUND)
             
-            # Check if sender has sufficient balance
             if sender_account.balance < amount:
                 return Response({"error": "Insufficient balance"}, status=status.HTTP_400_BAD_REQUEST)
             
-            # Perform fund transfer
             sender_account.balance -= amount
             receiver_account.balance += amount
             sender_account.save()
             receiver_account.save()
             
-            # Create fund transfer record
             serializer.save(sender_account_number=sender_account.account_number)
             
-            # Include new balance of sender in the response
             new_balance = sender_account.balance
             response_data = serializer.data
             response_data['new_sender_balance'] = new_balance
@@ -408,16 +400,12 @@ class FundTransferAPIView(APIView):
             return Response(response_data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     def get(self, request):
-        # Retrieve the account numbers and account types of all savings accounts associated with the logged-in user
         user_accounts = request.user.savings_set.values_list('account_number', 'account_type')
         
-        # Filter fund transfers where the sender's account number is in the list of user's account numbers
         fund_transfers = FundTransfer.objects.filter(sender_account_number__in=[account[0] for account in user_accounts])
 
-        # Serialize the fund transfer data
         serializer = FundTransferSerializer(fund_transfers, many=True)
         
-        # Return the serialized data along with account type as a response
         response_data = serializer.data
         for idx, transfer in enumerate(response_data):
             response_data[idx]['sender_account_type'] = dict(user_accounts).get(transfer['sender_account_number'], None)

@@ -33,7 +33,6 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         fields = ['email', 'password', 'first_name','last_name', 'dob']
 
     def update(self, instance, validated_data):
-        # Hash the password if it is included in the data
         if 'password' in validated_data:
             validated_data['password'] = make_password(validated_data['password'])
         return super().update(instance, validated_data)

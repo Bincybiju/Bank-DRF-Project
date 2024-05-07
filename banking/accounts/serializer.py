@@ -81,8 +81,6 @@ class FundTransferSerializer(serializers.ModelSerializer):
         model = FundTransfer
         fields = ['sender_account_number', 'receiver_account_number', 'amount', 'timestamp']
 
-
-
     def validate_amount(self, value):
         if value <= 0:
             raise serializers.ValidationError("Amount must be a positive number")

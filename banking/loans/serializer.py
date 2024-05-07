@@ -22,10 +22,7 @@ class LoanApplicationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Loan duration must be greater than zero.")
         return value
 
-class LoanApprovalSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = LoanApproval
-        fields = ['loan_application', 'interest_rate']
+
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import generics

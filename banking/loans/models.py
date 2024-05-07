@@ -44,7 +44,7 @@ class LoanApplication(models.Model):
 class LoanApproval(models.Model):
     loan_application = models.OneToOneField(LoanApplication, on_delete=models.CASCADE)
     approved_date = models.DateField(auto_now_add=True)
-    new_status = models.CharField(max_length=20, choices=LoanApplication.STATUS_CHOICES, default='Approved')
+    new_status = models.CharField(max_length=20, choices=LoanApplication.STATUS_CHOICES)
 
     def __str__(self):
         return f"{self.loan_application.user.username} - {self.loan_application.loan_type} Approval"

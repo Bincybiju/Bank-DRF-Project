@@ -81,9 +81,6 @@ class Savings(models.Model):
                 description=description,  # Pass description parameter
                 date=timezone.now()
             )
-        
-
-
 
 class SavingsTransaction(models.Model):
     DEPOSIT = 'DEPOSIT'
@@ -151,7 +148,6 @@ class RecurrentDeposit(models.Model):
     end_date = models.DateField(null=True, blank=True)
     total_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
 
-   
     def __str__(self):
         return f"Recurrent Deposit of {self.amount} for {self.user.username}"
     
@@ -160,8 +156,6 @@ class FundTransfer(models.Model):
     receiver_account_number = models.CharField(max_length=10)
     amount = models.DecimalField(max_digits=15, decimal_places=2)
     timestamp = models.DateTimeField(auto_now_add=True)
-
-
 
 class BudgetControl(models.Model):
     category_name = models.CharField(max_length=100)
