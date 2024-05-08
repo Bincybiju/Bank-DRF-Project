@@ -8,7 +8,7 @@ urlpatterns = [
     path('loans/', InterestListAPIView.as_view(), name='loan_list'),
     path('view-loans/', LoanApplicationListAPIView.as_view(), name='loan-list'),
     path('approve/', LoanApprovalAPIView.as_view(), name='loan-approval'),
-    path('loan-applied/', UserLoanApplicationListView.as_view(), name='user_loan_applications'),
+    path('user-loan-applications/<int:user_id>/', UserLoanApplicationListView.as_view(), name='user-loan-application-list'),
 
 
 

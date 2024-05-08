@@ -40,11 +40,11 @@ class LoanApplication(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.loan_type} Application"
-    
+
 class LoanApproval(models.Model):
     loan_application = models.OneToOneField(LoanApplication, on_delete=models.CASCADE)
     approved_date = models.DateField(auto_now_add=True)
-    new_status = models.CharField(max_length=20, choices=LoanApplication.STATUS_CHOICES)
+    new_status = models.CharField(max_length=20, choices=LoanApplication.STATUS_CHOICES)  # Reference LoanApplication.STATUS_CHOICES
 
     def __str__(self):
         return f"{self.loan_application.user.username} - {self.loan_application.loan_type} Approval"

@@ -7,6 +7,8 @@ from rest_framework import generics, permissions, status
 from django.shortcuts import get_object_or_404
 from .permissions import IsAdminOrStaffUser,IsCustomerUser
 from datetime import datetime,timedelta,date
+from django.core.mail import send_mail
+from decimal import Decimal
 
 class CreateAccountAPIView(APIView):
     permission_classes = [IsCustomerUser]
@@ -47,26 +49,27 @@ class DepositAPIView(generics.GenericAPIView):
     def post(self, request):
         account_number = request.data.get('account_number')
         amount = request.data.get('amount')
-        description = request.data.get('description', '')  # Get the description from the request data
+        description = request.data.get('description', '')  
 
         if not account_number or not amount:
             return Response({'error': 'Both account_number and amount are required'}, status=status.HTTP_400_BAD_REQUEST)
 
         savings_account = get_object_or_404(Savings, account_number=account_number, user=request.user)
-        serializer = self.get_serializer(data={'amount': amount, 'description': description})  # Pass description to serializer
+        serializer = self.get_serializer(data={'amount': amount, 'description': description})  
 
         if serializer.is_valid():
             amount = serializer.validated_data.get('amount')
-            description = serializer.validated_data.get('description', '')  # Get validated description
+            description = serializer.validated_data.get('description', '')  
             try:
-                savings_account.deposit(amount, description)  # Pass description to deposit method
+                savings_account.deposit(amount, description)
                 new_balance = savings_account.balance
                 return Response({'message': 'Deposit successful', 'new_balance': new_balance}, status=status.HTTP_200_OK)
             except ValueError as e:
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
+   
 class WithdrawalAPIView(generics.GenericAPIView):
     serializer_class = WithdrawalSerializer
     permission_classes = [IsCustomerUser]
@@ -143,7 +146,6 @@ class AllUsersTransactionHistoryAPIView(APIView):
         if not account_number:
             return Response({'error': 'Account number is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Fetch all accounts with the provided account number
         savings_accounts = Savings.objects.filter(account_number=account_number)
         current_accounts = Savings.objects.filter(account_number=account_number)
 
@@ -152,7 +154,6 @@ class AllUsersTransactionHistoryAPIView(APIView):
 
         response_data = []
 
-        # Retrieve transaction history for each account
         for account in savings_accounts:
             savings_transactions = SavingsTransaction.objects.filter(account=account)
             if savings_transactions.exists():
@@ -176,7 +177,7 @@ class InterestRateAPIView(APIView):
 
     def get(self, request):
         try:
-            interest_rate = InterestRate.objects.get(id=1)  # Assuming only one interest rate will be stored with ID 1
+            interest_rate = InterestRate.objects.get(id=1) 
             serializer = InterestRateSerializer(interest_rate)
             return Response(serializer.data)
         except InterestRate.DoesNotExist:
@@ -193,7 +194,7 @@ class InterestRateAPIView(APIView):
         except InterestRate.DoesNotExist:
             serializer = InterestRateSerializer(data=request.data)
             if serializer.is_valid():
-                serializer.save(id=1)  # Set ID to 1 to ensure only one interest rate exists
+                serializer.save(id=1)  
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -204,39 +205,30 @@ class FixedDepositCreateAPIView(generics.CreateAPIView):
     permission_classes = [IsCustomerUser]
 
     def calculate_total_amount(self, amount, interest_rate, duration_months):
-        # Convert duration from months to days
         duration_days = duration_months * 30
 
-        # Calculate total amount after the fixed deposit duration
         total_amount = amount * (1 + Decimal(interest_rate.rate) / 100) ** (duration_days / Decimal(365))
         return total_amount
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Get validated data from serializer
         amount = serializer.validated_data['amount']
         duration_months = serializer.validated_data['duration_months']
         start_date = timezone.now().date()
 
-        # Calculate end date based on duration in months
         end_date = start_date + timedelta(days=duration_months * 30)
 
-        # Fetch interest rate (assuming InterestRate model exists and has a 'rate' field)
         interest_rate = InterestRate.objects.first()
 
-        # Calculate total amount
         total_amount = self.calculate_total_amount(amount, interest_rate, duration_months)
 
-        # Save the fixed deposit
         serializer.save(user=request.user, end_date=end_date, total_amount=total_amount)
 
-        # Construct response data
         response_data = serializer.data
         response_data['end_date'] = end_date
         response_data['total_amount'] = total_amount
 
-        # Return response with serializer data
         return Response(response_data, status=status.HTTP_201_CREATED)
     
 class FixedDepositListAPIView(generics.ListAPIView):
@@ -245,35 +237,30 @@ class FixedDepositListAPIView(generics.ListAPIView):
     permission_classes = [IsCustomerUser]
 
     def get_queryset(self):
-        # Filter the queryset to include only fixed deposits of the current user
         user = self.request.user
         return FixedDeposit.objects.filter(user=user)
 
     def list(self, request, *args, **kwargs):
-        # Get the queryset filtered by the current user
         queryset = self.get_queryset()
         
         if not queryset.exists():
             return Response({"message": "No fixed deposits found for the current user."}, status=status.HTTP_404_NOT_FOUND)
         
-        # Serialize the queryset
         serializer = self.get_serializer(queryset, many=True)
         
-        # Return the serialized data as a response
         return Response(serializer.data)
   
-    
+ 
 class UserFixedDepositsAPIView(generics.ListAPIView):
     serializer_class = FixedDepositSerializer
     permission_classes = [IsAdminOrStaffUser]
     
     def get_queryset(self):
-        user_id = self.kwargs['user_id']
+        user_id = self.kwargs['user_id']        
         user_fixed_deposits = FixedDeposit.objects.filter(user_id=user_id)
         return user_fixed_deposits  
     
    
-from decimal import Decimal
 class RecurrentDepositCreateAPIView(generics.CreateAPIView):
     queryset = RecurrentDeposit.objects.all()
     serializer_class = RecurrentDepositSerializer
@@ -287,7 +274,6 @@ class RecurrentDepositCreateAPIView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Get validated data from serializer
         amount = serializer.validated_data['amount']
         frequency = serializer.validated_data['frequency']
         start_date = timezone.now().date()
@@ -302,22 +288,17 @@ class RecurrentDepositCreateAPIView(generics.CreateAPIView):
         else:
             return Response({"error": "Invalid frequency"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Calculate duration in days
         duration_days = (end_date - start_date).days
 
-        # Fetch interest rate (assuming InterestRate model exists and has a 'rate' field)
         interest_rate = InterestRate.objects.first()
 
         if not interest_rate:
             return Response({"error": "No interest rate found"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Calculate total amount
         total_amount = self.calculate_total_amount(amount, interest_rate, duration_days)
 
-        # Save recurrent deposit
         serializer.save(user=request.user, end_date=end_date, total_amount=total_amount)
 
-        # Construct response data
         response_data = serializer.data
         response_data['total_amount_after_duration'] = total_amount
         response_data['end_date'] = end_date
@@ -331,21 +312,17 @@ class RecurrentDepositListAPIView(generics.ListAPIView):
 
 
     def get_queryset(self):
-        # Filter the queryset to include only fixed deposits of the current user
         user = self.request.user
         return RecurrentDeposit.objects.filter(user=user)
 
     def list(self, request, *args, **kwargs):
-        # Get the queryset filtered by the current user
         queryset = self.get_queryset()
         
         if not queryset.exists():
             return Response({"message": "No fixed deposits found for the current user."}, status=status.HTTP_404_NOT_FOUND)
         
-        # Serialize the queryset
         serializer = self.get_serializer(queryset, many=True)
         
-        # Return the serialized data as a response
         return Response(serializer.data)
 
 
@@ -440,4 +417,41 @@ class BudgetListCreateAPIView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    
+class SavingsGoalListCreateAPIView(APIView):
+    def get(self, request):
+        savings_goals = SavingsGoal.objects.filter(user=request.user)
+        serializer = SavingsGoalSerializer(savings_goals, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = SavingsGoalSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+from django.http import Http404
+
+class SavingsGoalDetailAPIView(APIView):
+    def get_object(self, pk):
+        try:
+            return SavingsGoal.objects.get(pk=pk)
+        except SavingsGoal.DoesNotExist:
+            raise Http404
+
+    def get(self, request, pk):
+        savings_goal = self.get_object(pk)
+        serializer = SavingsGoalSerializer(savings_goal)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        savings_goal = self.get_object(pk)
+        serializer = SavingsGoalSerializer(savings_goal, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        savings_goal = self.get_object(pk)
+        savings_goal.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

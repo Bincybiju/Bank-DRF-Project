@@ -102,13 +102,11 @@ class LoanApprovalAPIView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Update loan application status
         loan_application = serializer.validated_data['loan_application']
         new_status = serializer.validated_data['new_status']
         loan_application.status = new_status
         loan_application.save()
 
-        # Create loan approval instance
         loan_approval = serializer.save()
 
         send_mail(
@@ -120,11 +118,15 @@ class LoanApprovalAPIView(generics.CreateAPIView):
         )
 
         return Response({'message': 'Loan status updated and notification sent'}, status=status.HTTP_201_CREATED)
-    
+
 class UserLoanApplicationListView(generics.ListAPIView):
     serializer_class = LoanApplicationSerializer
     permission_classes = [IsAdminOrStaffUser]
 
     def get_queryset(self):
-        # user = self.request.user
-        return LoanApplication.objects.all()
+        user_id = self.kwargs.get('user_id')
+        if user_id is not None:
+            return LoanApplication.objects.filter(user_id=user_id)
+        else:
+            # If user_id is not provided, return an empty queryset
+            return LoanApplication.objects.none()

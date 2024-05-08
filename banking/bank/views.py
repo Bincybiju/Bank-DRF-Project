@@ -39,7 +39,7 @@ class LoginAPIView(APIView):
             password = serializer.validated_data['password']
            
             user = authenticate(request, username=username, password=password)
-            print(user)
+            # print(user)
             if user is not None:
                 user.save()  
                 access_token = AccessToken.for_user(user)
@@ -55,7 +55,7 @@ class LoginAPIView(APIView):
                 return Response({'detail': 'Invalid username or password'}, status=status.HTTP_401_UNAUTHORIZED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-              
+
 class ProfileUpdateAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -63,7 +63,7 @@ class ProfileUpdateAPIView(APIView):
         user = request.user
         data = request.data.copy()  
 
-        allowed_fields = ['email', 'password', 'first_name','last_name', 'dob']
+        allowed_fields = [ 'password', 'first_name','last_name', 'dob']
         additional_fields = [field for field in data if field not in allowed_fields]
         if additional_fields:
             return Response({"error": f"Updating fields other than {', '.join(allowed_fields)} is not allowed"}, status=status.HTTP_400_BAD_REQUEST)
@@ -76,23 +76,23 @@ class ProfileUpdateAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
    
 
-# class LogoutView(APIView):
-#     permission_classes = (IsAuthenticated,)
-
-#     def post(self, request):
-#         try:
-#             refresh_token = request.data["refresh_token"]
-#             token = RefreshToken(refresh_token)
-#             token.blacklist()
-
-#             return Response({"message": "Logout successful"})
-#         except Exception as e:
-#             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
 from django.contrib.auth import logout
 class LogoutAPIView(APIView):     
     permission_classes = [IsAuthenticated]    
     def post(self, request):        
-    # Logout the user
         logout(request)        
         return Response({'message':'Logout successful'})
+
+
+# class LogoutAPIView(APIView):
+#     permission_classes = [IsAuthenticated]
+#     def post(self, request):
+#         try:
+#             auth_header = request.headers['Authorization']
+#             refresh_token = request.headers['refresh']
+#             if refresh_token.startswith('Bearer ') and auth_header.startswith('Bearer '):
+#                 bearer_refresh_token = refresh_token.split('Bearer ')[1]
+#                 RefreshToken(bearer_refresh_token).blacklist()
+#             return Response({"message": "Successfully logged out."}, status=status.HTTP_205_RESET_CONTENT)
+#         except Exception as e:
+#             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)  

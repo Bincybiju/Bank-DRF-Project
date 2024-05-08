@@ -8,7 +8,7 @@ class AccountSerializer(serializers.ModelSerializer):
 
 class DepositSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=15, decimal_places=2)
-    description = serializers.CharField(required=False, allow_blank=True)  # Description field added to the serializer
+    description = serializers.CharField(required=False, allow_blank=True)  
 
     def validate_amount(self, value):
         if value <= 0:
@@ -17,7 +17,7 @@ class DepositSerializer(serializers.Serializer):
 
 class WithdrawalSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=15, decimal_places=2)
-    description = models.TextField(blank=True)  # Add a description field
+    description = models.TextField(blank=True)  
 
 
     def validate_amount(self, value):
@@ -86,14 +86,12 @@ class FundTransferSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Amount must be a positive number")
         return value
     def get_account_type(self, obj):
-        # Retrieve the account type of the sender's account
         try:
             sender_account = Savings.objects.get(account_number=obj.sender_account_number)
             return sender_account.account_type
         except Savings.DoesNotExist:
             return None
-from django.core.mail import send_mail
-from rest_framework import viewsets
+
 
 class BudgetSerializer(serializers.ModelSerializer):
     class Meta:
@@ -107,3 +105,8 @@ class BudgetSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Alloted budget must be greater than balance budget.")
 
         return data
+    
+class SavingsGoalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SavingsGoal
+        fields = ['id', 'account_number', 'description', 'goal_amount', 'current_progress', 'start_date', 'end_date']

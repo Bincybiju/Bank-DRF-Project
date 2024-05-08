@@ -30,7 +30,7 @@ class Savings(models.Model):
     def generate_account_number(self):
         return ''.join(random.choices(string.digits, k=10))
     
-    def deposit(self, amount, description=None):  # Added description parameter with default value None
+    def deposit(self, amount, description=None):  
         if amount <= 0:
             raise ValueError("Amount must be positive")
         if self.account_type == self.SAVINGS and amount > self.SAVINGS_TRANSACTION_LIMIT:
@@ -38,24 +38,24 @@ class Savings(models.Model):
         self.balance += amount
         self.save()
         
-        if self.account_type == self.SAVINGS:  # Only create SavingsTransaction for savings account
+        if self.account_type == self.SAVINGS: 
             SavingsTransaction.objects.create(
                 account=self,
                 transaction_type='DEPOSIT',
                 amount=amount,
-                description=description,  # Pass description parameter
+                description=description, 
                 date=timezone.now()
             )
-        elif self.account_type == self.CURRENT:  # Only create CurrentTransaction for current account
+        elif self.account_type == self.CURRENT:  
             CurrentTransaction.objects.create(
                 account=self,
                 transaction_type='DEPOSIT',
                 amount=amount,
-                description=description,  # Pass description parameter
+                description=description,  
                 date=timezone.now()
             )
   
-    def withdraw(self, amount, description=None):  # Added description parameter with default value None
+    def withdraw(self, amount, description=None):  
         if amount <= 0:
             raise ValueError("Amount must be positive")
         if amount > self.balance:
@@ -64,21 +64,28 @@ class Savings(models.Model):
             raise ValueError("Withdrawal amount exceeds maximum transaction limit for savings accounts")
         self.balance -= amount
         self.save()
+        if description:
+            try:
+                savings_goal = SavingsGoal.objects.get(account_number=self.account_number, description=description)
+                savings_goal.current_progress += amount
+                savings_goal.save()
+            except SavingsGoal.DoesNotExist:
+                pass  
         
-        if self.account_type == self.SAVINGS:  # Only create SavingsTransaction for savings account
+        if self.account_type == self.SAVINGS:  
             SavingsTransaction.objects.create(
                 account=self,
                 transaction_type='WITHDRAWAL',
                 amount=amount,
-                description=description,  # Pass description parameter
+                description=description, 
                 date=timezone.now()
             )
-        elif self.account_type == self.CURRENT:  # Only create CurrentTransaction for current account
+        elif self.account_type == self.CURRENT:  
             CurrentTransaction.objects.create(
                 account=self,
                 transaction_type='WITHDRAWAL',
                 amount=amount,
-                description=description,  # Pass description parameter
+                description=description,  
                 date=timezone.now()
             )
 
@@ -94,12 +101,12 @@ class SavingsTransaction(models.Model):
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
     amount = models.DecimalField(max_digits=15, decimal_places=2)
     date = models.DateTimeField(default=timezone.now)
-    description = models.TextField(blank=True)  # Add a description field
+    description = models.TextField(blank=True) 
 
 
     def __str__(self):
         return f"{self.transaction_type} of {self.amount} on {self.date}"
-
+    
 class CurrentTransaction(models.Model):
     DEPOSIT = 'DEPOSIT'
     WITHDRAWAL = 'WITHDRAWAL'
@@ -112,12 +119,12 @@ class CurrentTransaction(models.Model):
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
     amount = models.DecimalField(max_digits=15, decimal_places=2)
     date = models.DateTimeField(default=timezone.now)
-    description = models.TextField(blank=True)  # Add a description field
+    description = models.TextField(blank=True) 
 
 
     def __str__(self):
         return f"{self.transaction_type} of {self.amount} on {self.date}"
-
+    
 class InterestRate(models.Model):
     rate = models.DecimalField(max_digits=5, decimal_places=2)
 
@@ -167,3 +174,15 @@ class BudgetControl(models.Model):
 
     def __str__(self):
         return f"{self.account_number} - {self.expense_category.category_name} - {self.start_date} to {self.end_date}"
+
+class SavingsGoal(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    account_number = models.CharField(max_length=10)  # Account number associated with the savings goal
+    description = models.CharField(max_length=255)  # Description for which the savings goal is set
+    goal_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    current_progress = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    achieved = models.BooleanField(default=False)
+    start_date = models.DateField()
+    end_date = models.DateField()
+
+   

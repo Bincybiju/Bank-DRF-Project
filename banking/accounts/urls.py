@@ -18,5 +18,7 @@ urlpatterns = [
     path('fixed-deposits/', FixedDepositListAPIView.as_view(), name='fixed_deposit_list'),
     path('recurrent-deposits/', RecurrentDepositListAPIView.as_view(), name='recurrent-deposit-list'),
     path('budgets/', BudgetListCreateAPIView.as_view(), name='budget-list-create'),
+    path('savings-goals/', SavingsGoalListCreateAPIView.as_view(), name='savings-goal-list-create'),
+    # path('savings-goals/<int:pk>/', SavingsGoalRetrieveUpdateDestroyAPIView.as_view(), name='savings-goal-detail'),
 
 ]
